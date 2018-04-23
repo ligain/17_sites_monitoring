@@ -28,7 +28,7 @@ pip install -r requirements.txt # alternatively try pip3
 # Usage
 ```bash
 $ cd 17_sites_monitoring/
-$ python check_sites_health.py -p ../urls.txt
+$ python check_sites_health.py -p path/to/urls.txt
 Urls that need your attention:
 -----------------------------------------------------------------------------------------------
 Url                                                          | Is 200 OK  | Is domain expired

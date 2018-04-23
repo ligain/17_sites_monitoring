@@ -41,12 +41,12 @@ def get_domain_expiration_date(url):
 def check_statuses(url, user_agents=None):
     try:
         url_status = is_server_respond_with_200(url, user_agents)
-    except Exception:
+    except requests.exceptions.ConnectionError:
         url_status = False
 
     try:
         domain_status = get_domain_expiration_date(url)
-    except Exception:
+    except:
         domain_status = False
 
     return url_status, domain_status
@@ -113,6 +113,3 @@ if __name__ == '__main__':
     urls_statuses = get_urls_statuses(urls, USER_AGENTS)
 
     print_statuses(urls_statuses)
-
-
-
