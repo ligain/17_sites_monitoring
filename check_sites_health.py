@@ -46,7 +46,7 @@ def check_statuses(url, user_agents=None):
 
     try:
         domain_status = get_domain_expiration_date(url)
-    except:
+    except (Exception, AttributeError):
         domain_status = False
 
     return url_status, domain_status
