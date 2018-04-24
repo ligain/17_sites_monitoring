@@ -28,15 +28,14 @@ pip install -r requirements.txt # alternatively try pip3
 # Usage
 ```bash
 $ cd 17_sites_monitoring/
-$ python check_sites_health.py -p path/to/urls.txt
-Urls that need your attention:
------------------------------------------------------------------------------------------------
-Url                                                          | Is 200 OK  | Is domain expired
------------------------------------------------------------------------------------------------
-http://sdfssdfsdf.ru/                                        |     no     |    yes    
-http://www.i.ua/                                             |    yes     |    yes    
-https://www.gismeteo.ua/                                     |    yes     |    yes    
-https://dou.ua/                                              |    yes     |    yes   
+$ python check_sites_health.py -p ../urls.txt
+Checked URLs:
+---------------------------------------------------------------------------------------------------------
+Url                                                          |      Is URL ok       |    Domain status
+---------------------------------------------------------------------------------------------------------
+http://www.i.ua/                                             |         yes          |        error
+https://habrahabr.ru/                                        |         yes          |          OK
+https://www.gismeteo.ua/                                     |         yes          |        error
 ...
 ```
   

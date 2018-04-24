@@ -2,13 +2,16 @@ import os
 import random
 import argparse
 import requests
+import whois
 from urllib.parse import urlparse
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import whois
-
-from constants import USER_AGENTS
+from constants import (
+    USER_AGENTS,
+    TABLE_WIDTH,
+    DOMAIN_EXPIRATION_DAYS
+)
 
 
 def load_urls4check(urls_path):
@@ -17,51 +20,72 @@ def load_urls4check(urls_path):
             yield line.strip()
 
 
-def is_server_respond_with_200(url, user_agents=None):
+def is_server_response_ok(url, user_agents=None):
+    headers = {}
     if user_agents:
-        user_agent = random.choice(user_agents)
-    else:
-        user_agent = 'python-requests/1.2.0'
+        headers = {'User-Agent': random.choice(user_agents)}
     response = requests.head(
         url,
-        headers={'User-Agent': user_agent}
+        headers=headers
     )
     return response.ok
 
 
 def get_domain_expiration_date(url):
     domain_name = urlparse(url).netloc
-    whois_response = whois.query(domain_name)
-    expiration_date = whois_response.expiration_date
+    whois_response = whois.whois(domain_name)
+
+    whois_expiration_date = whois_response.expiration_date
+    if not whois_expiration_date:
+        return
+
+    if isinstance(whois_expiration_date, list):
+        expiration_date = whois_expiration_date[0]
+    elif isinstance(whois_expiration_date, datetime):
+        expiration_date = whois_expiration_date
+    else:
+        expiration_date = None
+    return expiration_date
+
+
+def get_domain_status(expiration_date):
     today = datetime.now()
-    delta_days = expiration_date - today
-    return bool(delta_days >= timedelta(days=30))
+    if expiration_date is None:
+        domain_status = 'error'
+    else:
+        delta_days = expiration_date - today
+        if delta_days >= timedelta(days=DOMAIN_EXPIRATION_DAYS):
+            domain_status = 'OK'
+        else:
+            domain_status = 'expiring'
+    return domain_status
 
 
 def check_statuses(url, user_agents=None):
     try:
-        url_status = is_server_respond_with_200(url, user_agents)
+        url_status_check_result = is_server_response_ok(url, user_agents)
+        url_status = 'yes' if url_status_check_result else 'no'
     except requests.exceptions.ConnectionError:
-        url_status = False
+        url_status = 'no'
 
-    try:
-        domain_status = get_domain_expiration_date(url)
-    except (Exception, AttributeError):
-        domain_status = False
+    expiration_date = get_domain_expiration_date(url)
+    domain_status = get_domain_status(expiration_date)
 
     return url_status, domain_status
 
 
 def get_urls_statuses(urls, user_agents=None):
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        futures = {
-            executor.submit(check_statuses, url, user_agents): url for url in urls
-        }
+    workers = os.cpu_count() * 2
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {}
+        for url in urls:
+            future = executor.submit(check_statuses, url, user_agents)
+            futures[future] = url
+
         for future in as_completed(futures):
             url = futures[future]
             statuses = future.result()
-            if not all(statuses):
-                yield url, statuses
+            yield url, statuses
 
 
 def is_filepath(path):
@@ -74,7 +98,7 @@ def is_filepath(path):
 
 def get_args():
     parser = argparse.ArgumentParser(
-        description='Tool for monitoring domains'
+        description='Tool for checking urls status'
     )
     parser.add_argument(
         '-p', '--urls-path',
@@ -86,21 +110,17 @@ def get_args():
 
 
 def print_statuses(statuses):
-
-    if not statuses:
-        print('Everything is OK with your urls!')
-
-    print('Urls that need your attention:')
-    print('-' * 95)
-    row_template = '{:<60} | {:^10} | {:^10}'
-    print(row_template.format('Url', 'Is 200 OK', 'Is domain expired'))
-    print('-' * 95)
+    print('Checked URLs:')
+    print('-' * TABLE_WIDTH)
+    row_template = '{:<60} | {:^20} | {:^20}'
+    print(row_template.format('Url', 'Is URL ok', 'Domain status'))
+    print('-' * TABLE_WIDTH)
     for url, (url_status, domain_status) in statuses:
         print(
             row_template.format(
                 url,
-                'yes' if url_status else 'no',
-                'no' if domain_status else 'yes'
+                url_status,
+                domain_status
             )
         )
 
