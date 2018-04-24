@@ -47,11 +47,7 @@ def get_domain_status(expiration_date, days_to_expire=30):
         domain_status = None
     else:
         delta_days = expiration_date - today
-        if delta_days >= timedelta(days=days_to_expire):
-            domain_status = True
-        else:
-            domain_status = False
-    return domain_status
+        return delta_days >= timedelta(days=days_to_expire)
 
 
 def check_statuses(url, user_agents=None):
@@ -110,20 +106,12 @@ def print_statuses(statuses):
     print(horizontal_line)
 
     for url, (url_status, domain_status) in statuses:
-        url_status_result = 'yes' if url_status else 'no'
-
-        if domain_status:
-            domain_status_result = 'OK'
-        elif domain_status is None:
-            domain_status_result = 'error'
-        else:
-            domain_status_result = 'expiring'
-
         print(
             row_template.format(
                 url,
-                url_status_result,
-                domain_status_result
+                'yes' if url_status else 'no',
+                'error' if domain_status is None
+                else 'OK' if domain_status else 'expired'
             )
         )
 
