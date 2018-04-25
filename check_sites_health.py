@@ -44,7 +44,7 @@ def get_domain_expiration_date(url):
 def get_domain_status(expiration_date, days_to_expire=30):
     today = datetime.now()
     if expiration_date is None:
-        domain_status = None
+        return
     else:
         delta_days = expiration_date - today
         return delta_days >= timedelta(days=days_to_expire)
